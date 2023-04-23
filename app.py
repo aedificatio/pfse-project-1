@@ -1,33 +1,61 @@
 import streamlit as st
-import plotly.graph_objects as go
-import sample_app_module as sam
-import sectionproperties.pre.library.primitive_sections as primitive_sections
-from sectionproperties.analysis.section import Section
-from sectionproperties.pre.pre import Material
+import crane_runway as cr
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pycba as cba
 
-
-st.title("Designcalculation of a Cranebeam")
-st.header("Designcalculation of a Cranebeam.")
-st.subheader("Designcalculation of a Cranebeam.")
+st.header("Designcalculation of a Crane runway.")
 
 # Geometry Parameters
 st.sidebar.header("Geometry Parameters")
-no_spans = st.sidebar.slider("Number of spans:",min_value=1, max_value=5, value=3)
+no_spans = st.sidebar.slider(
+    "Number of spans: ", 
+    min_value=1, 
+    max_value=5, 
+    value=3
+)
 
 st.sidebar.write("")
 spans = {}
 for idx, span in enumerate([0] * no_spans,start = 1):
-    spans[idx] = st.sidebar.slider(f"Span {idx} - Length in (mm):",min_value=250, max_value=9000, value=5000,step = 250)
+    spans[idx] = st.sidebar.slider(
+        f"Span {idx} - Length in (mm):",
+        min_value=250, 
+        max_value=9000, 
+        value=5000,
+        step = 250
+    )
 
-# Steel Parameters
+
+# Bridge Crane Parameters
 st.sidebar.write("")
-st.sidebar.header("Steel Properties")
-fy = st.sidebar.number_input("Yield strength (MPa)", value=350)
-E_mod = st.sidebar.number_input("Elastic modulus (MPa)", value=200e3)
-rho = st.sidebar.number_input("Density ($kg/m^3$)", value = 7850)
+st.sidebar.header("Bridge Crane Parameters")
+crane_load = st.sidebar.number_input("Max Crane Load (kN)", value=350, step=10)
+st.sidebar.write("(This includes self-weight of the bridge crane)")
+no_cranewheels = st.sidebar.slider(
+    "Number of crane wheels: ", 
+    min_value=1, 
+    max_value=4, 
+    value=2
+)
+dist_between_cranewheels = st.sidebar.slider(
+    f"Distance between crane wheels - Length in (mm):",
+    min_value=250, 
+    max_value=1500, 
+    value=1000,
+    step = 250
+)
+
+
+# Steel Properties
+steel_properties = st.expander(label="Steel Properties")
+with steel_properties:
+    st.header("Steel Properties")
+    fy = st.number_input("Yield strength (MPa)", value=235)
+    E_mod = st.number_input("Elastic modulus (MPa)", value=200e3)
+    rho = st.number_input("Density ($kg/m^3$)", value = 7850)
+
 
 # Section Properties
 section_properties = st.expander(label="Section Properties")
@@ -40,38 +68,7 @@ with section_properties:
     bot_flange_width = st.number_input("Width bottom flange (mm)", value = 300)
     bot_flange_height = st.number_input("Height bottom flange (mm)", value = 15)
 
-# Calculate Sectionproperties
-@st.cache_data
-def calc_sectionproperties(
-        fy, 
-        E_mod, 
-        rho,
-        top_flange_width, 
-        top_flange_height,
-        web_width,
-        web_height,
-        bot_flange_width,
-        bot_flange_height
-    ):
-    name='Steel'
-    poissons_ratio=0.3
-    color='blue'
-
-    steel = Material(name=name, elastic_modulus=E_mod, poissons_ratio=poissons_ratio, density=rho*1e-9,
-                 yield_strength=fy, color=color)
-
-    top_flange = primitive_sections.rectangular_section(top_flange_width, top_flange_height, material=steel).shift_section(-top_flange_width / 2, web_height / 2)
-    web = primitive_sections.rectangular_section(web_width, web_height, material=steel).shift_section(-web_width / 2, -web_height / 2)
-    bot_flange = primitive_sections.rectangular_section(bot_flange_width, bot_flange_height, material=steel).shift_section(-bot_flange_width / 2, -web_height / 2 - bot_flange_height)
-    geometry = top_flange + web + bot_flange
-    geometry.create_mesh(mesh_sizes=[15])
-
-    section = Section(geometry)
-    section.calculate_geometric_properties()
-    section.calculate_warping_properties()
-    return section
-
-section = calc_sectionproperties(
+    section = cr.calc_sectionproperties(
         fy=fy, 
         E_mod=E_mod, 
         rho=rho,
@@ -83,22 +80,21 @@ section = calc_sectionproperties(
         bot_flange_height=bot_flange_height
     )
 
-area = section.get_area() # mm2
-mass = section.get_mass() * 1000 # kg/m1
-ixx, iyy, ixy = section.get_ic()
+    area = section.get_area() # mm2
+    mass = section.get_mass() * 1000 # kg/m1
+    ixx, iyy, ixy = section.get_ic()
 
-st.write(f"The current section has the following properties:")
-st.write(f"- Mass of {mass:.3f} ($kg/m^1$)")
-st.write(f"- A =  {area:.0f} ($mm^2$)")
-st.write(f"- $I_y$ = {ixx/10000:.0f} ($10^4 mm^4$)")
-st.write(f"- $I_z$ = {iyy/10000:.0f} ($10^4 mm^4$)")
+    st.write(f"The current section has the following properties:")
+    st.write(f"- Mass of {mass:.3f} ($kg/m^1$)")
+    st.write(f"- A =  {area:.0f} ($mm^2$)")
+    st.write(f"- $I_y$ = {ixx/10000:.0f} ($10^4 mm^4$)")
+    st.write(f"- $I_z$ = {iyy/10000:.0f} ($10^4 mm^4$)")
 
 
-
+# Plot Section
 plot_current_section = st.expander(label="Plot Section")
 with plot_current_section:
     st.header("Plot Section")
-    plot_mesh = section.plot_mesh()
     plot_centroids = section.plot_centroids()
     fig_plot_centroids = plot_centroids.figure
     st.pyplot(fig=fig_plot_centroids)
@@ -109,7 +105,7 @@ with plot_current_section:
 # PyCBA
 stepsize = 0.0325
 EI_spans =  [E_mod * ixx / 1000] * len(spans) # kN/m2
-supports = [-1, 0] * (len(spans) + 1)
+supports = [-1, 0] * (len(spans) + 1) # rigid vertical support, no rotation capacity
 UDL = mass / 100 # kN/m1
 
 loads = []
