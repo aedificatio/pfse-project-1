@@ -4,8 +4,12 @@ import crane_runway as cr
 import matplotlib.pyplot as plt
 import numpy as np
 import pycba as cba
+from typing import Union, Dict
+import math
 
 st.header("Designcalculation of a Crane runway.")
+st.write("NOT for use in real-life. \
+         No safety factors or instability effects are taken into account.")
 
 # Geometry Parameters
 st.sidebar.header("Geometry Parameters")
@@ -15,7 +19,6 @@ no_spans = st.sidebar.slider(
     max_value=5, 
     value=3
 )
-
 st.sidebar.write("")
 spans = {}
 for idx, span in enumerate([0] * no_spans,start = 1):
@@ -40,7 +43,7 @@ no_cranewheels = st.sidebar.slider(
     value=2
 )
 dist_between_cranewheels = st.sidebar.slider(
-    f"Distance between crane wheels - Length in (mm):",
+    "Distance between crane wheels - Length in (mm):",
     min_value=250, 
     max_value=1500, 
     value=1000,
@@ -100,75 +103,91 @@ with plot_current_section:
     st.pyplot(fig=fig_plot_centroids)
 
 
+# Show Hand Calculation for runway stresses
+show_handcalcs = st.expander(label="Show Hand Calculation for runway stresses")
+with show_handcalcs:
+    st.header("Show Hand Calculation for runway stresses")
+    
 
 
 # PyCBA
-stepsize = 0.0325
-EI_spans =  [E_mod * ixx / 1000] * len(spans) # kN/m2
-supports = [-1, 0] * (len(spans) + 1) # rigid vertical support, no rotation capacity
-UDL = mass / 100 # kN/m1
+stepsize: float = 0.05
 
-loads = []
-element_types = []
-for idx, span in enumerate(spans, start = 1):
-    loads.append([idx, 1, UDL, 0, 0]) # beamnr, loadtype, force, start, stop
-    element_types.append(1)
+beam_model = cr.create_crane_runway(E_mod=E_mod, ixx=ixx, spans=spans, mass=mass)
+crane_vehicle = cr.create_crane_vehicle(
+    beam_model=beam_model, 
+    dist_between_cranewheels=dist_between_cranewheels, 
+    no_cranewheels=no_cranewheels, 
+    crane_load=crane_load
+)
+bridge_model = cr.create_bridge_model(beam_model, crane_vehicle)
 
-spans_in_m = [span / 1000 for span in list(spans.values())]
+# RESULT INFLUENCELINE BRIDGEMODEL
+results_envelope = bridge_model.run_vehicle(step=stepsize)
+results_critical_values = bridge_model.critical_values(results_envelope)
 
-beam_model = cba.BeamAnalysis(spans_in_m, EI_spans, supports, loads, element_types)
-beam_model.analyze()
+pos_x_all = results_envelope.x # Numpy array with x values
 
-beam_model.plot_results()
-axle_spacings = [4.3, 6.5]
-axle_loads = [35, 145, 145]
-aashto_truck = cba.Vehicle(axle_spacings=axle_spacings,  axle_weights=axle_loads)
-bridge_model = cba.BridgeAnalysis(beam_model, aashto_truck)
-bridge_model.static_vehicle(pos=13, plotflag=True)
-results = bridge_model.run_vehicle(step=stepsize)
-results_envelope = bridge_model.critical_values(results)
-st.write(results_envelope)
+min_value = float(min(pos_x_all))
+max_value = float(max(pos_x_all))
+
+pos_x_selected = st.slider(
+    "Select position of beam crane", 
+    min_value=min_value, 
+    max_value=max_value, 
+    step=stepsize
+)
+
+Mmax_env = -results_envelope.Mmax
+Mmin_env = -results_envelope.Mmin
+Vmax_env = results_envelope.Vmax
+Vmin_env = results_envelope.Vmin
+
+
+# RESULT AT SELECTED POS
+result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
 
 
 
-results_envelope = bridge_model.run_vehicle(step=stepsize, plot_env=True)
-pos_x = results_envelope.x
-Mmax = -results_envelope.Mmax
-Mmin = -results_envelope.Mmin
-Vmax = results_envelope.Vmax
-Vmin = results_envelope.Vmin
 
-fig1, ax1 = plt.subplots()
-ax1.set_ylabel("kNm")
-ax1.set_ylabel("kNm")
-ax1.set_xlabel("m")
-ax1.plot(pos_x, Mmax, "green")
-ax1.plot(pos_x, Mmin, "blue")
-ax1.fill_between(pos_x, Mmax, color="green", alpha=0.3)
-ax1.fill_between(pos_x, Mmin, color="blue", alpha=0.3)
 
-fig1.set_size_inches(7,5)
-st.pyplot(fig=fig1)
+plot_V = {
+        'title': "Shearforce",
+        'y_label': 'kN',
+        'max': 'red',
+        'min': 'orange',
+        'selected_pos': 'red'
+    }
+plot_M = {
+        'title': "Bending moment",
+        'y_label':'kNm',
+        'max': 'green',
+        'min': 'blue',
+        'selected_pos': 'red'
+    }
 
-fig2, ax2 = plt.subplots()
-ax2.set_ylabel("kNm")
-ax2.set_ylabel("kNm")
-ax2.set_xlabel("m")
-ax2.plot(pos_x, Vmax, "red")
-ax2.plot(pos_x, Vmin, "orange")
-ax2.fill_between(pos_x, Vmax, color="red", alpha=0.3)
-ax2.fill_between(pos_x, Vmin, color="orange", alpha=0.3)
+fig_M, ax_M = cr.plot_results(plot_M, pos_x_all, Mmax_env, Mmin_env, result_at_pos.results.M)
+fig_M.set_size_inches(7,5)
+st.pyplot(fig=fig_M)
 
-fig2.set_size_inches(7,5)
-st.pyplot(fig=fig2)
+fig_V, ax_V = cr.plot_results(plot_V, pos_x_all, Vmax_env, Vmin_env, -result_at_pos.results.V)
+fig_V.set_size_inches(7,5)
+st.pyplot(fig=fig_V)
 
-N=1e3
-Vy=3e3
-Mxx=1e6
 
-stress_post = section.calculate_stress(N=N, Vy=Vy, Mxx=Mxx)
-plot_stress_vm = stress_post.plot_stress_vm()
-fig, ax = plt.subplots()
+
+
+
+
+# st.write(results_critical_values) # dict met Min max values
+
+# N=1e3
+# Vy=3e3
+# Mxx=1e6
+
+# stress_post = section.calculate_stress(N=N, Vy=Vy, Mxx=Mxx)
+# plot_stress_vm = stress_post.plot_stress_vm()
+# fig, ax = plt.subplots()
 # ax = plot_centroids
 
 fig = plot_centroids.figure
