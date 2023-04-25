@@ -50,7 +50,6 @@ dist_between_cranewheels = st.sidebar.slider(
     step = 250
 )
 
-
 # Steel Properties
 steel_properties = st.expander(label="Steel Properties")
 with steel_properties:

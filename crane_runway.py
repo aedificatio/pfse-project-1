@@ -43,6 +43,8 @@ def calc_sectionproperties(
     section.calculate_warping_properties()
     return section
 
+
+@st.cache_data
 def create_crane_runway(
         E_mod: float, 
         ixx: float, 
@@ -65,6 +67,7 @@ def create_crane_runway(
     return beam_model
 
 
+# nocache
 def create_crane_vehicle(
         beam_model: cba.BeamAnalysis,
         dist_between_cranewheels: int,
@@ -82,6 +85,7 @@ def create_crane_vehicle(
     return crane_vehicle
 
 
+# nocache
 def create_bridge_model(
         beam_model: cba.BeamAnalysis, 
         crane_vehicle: cba.BridgeAnalysis
@@ -90,6 +94,7 @@ def create_bridge_model(
     return bridge_model
 
 
+@st.cache_data
 def plot_results(plot_info, pos_x_all, data_max_env, data_min_env, data_at_selected_pos):
     fig, ax = plt.subplots()
     ax.set_title(plot_info['title'])
