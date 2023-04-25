@@ -107,3 +107,11 @@ def plot_results(plot_info, pos_x_all, data_max_env, data_min_env, data_at_selec
     ax.fill_between(pos_x_all, data_max_env, color=plot_info['max'], alpha=0.3)
     ax.fill_between(pos_x_all, data_min_env, color=plot_info['min'], alpha=0.3)
     return fig, ax
+
+
+
+# TODO
+# docstrings module, class functions
+# imports
+# classes
+# plot markers
