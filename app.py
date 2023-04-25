@@ -29,26 +29,33 @@ for idx, span in enumerate([0] * no_spans,start = 1):
         value=5000,
         step = 250
     )
+support_locations = [0]
+for idx, _ in enumerate(spans):
+    support_to_add = sum(list(spans.values())[0:idx+1])
+    support_locations.append(support_to_add)
 
 
 # Bridge Crane Parameters
 st.sidebar.write("")
 st.sidebar.header("Bridge Crane Parameters")
-crane_load = st.sidebar.number_input("Max Crane Load (kN)", value=350, step=10)
+
+crane = cr.Crane()
+crane.crane_load = st.sidebar.number_input("Max Crane Load (kN)", value=350, step=10)
 st.sidebar.write("(This includes self-weight of the bridge crane)")
-no_cranewheels = st.sidebar.slider(
+crane.no_cranewheels = st.sidebar.slider(
     "Number of crane wheels: ", 
     min_value=1, 
     max_value=4, 
     value=2
 )
-dist_between_cranewheels = st.sidebar.slider(
+crane.dist_between_cranewheels = st.sidebar.slider(
     "Distance between crane wheels - Length in (mm):",
     min_value=250, 
     max_value=1500, 
     value=1000,
     step = 250
 )
+
 
 # Steel Properties
 steel_properties = st.expander(label="Steel Properties")
@@ -113,12 +120,7 @@ with show_handcalcs:
 stepsize: float = 0.05
 
 beam_model = cr.create_crane_runway(E_mod=E_mod, ixx=ixx, spans=spans, mass=mass)
-crane_vehicle = cr.create_crane_vehicle(
-    beam_model=beam_model, 
-    dist_between_cranewheels=dist_between_cranewheels, 
-    no_cranewheels=no_cranewheels, 
-    crane_load=crane_load
-)
+crane_vehicle = cr.create_crane_vehicle(beam_model=beam_model, crane=crane)
 bridge_model = cr.create_bridge_model(beam_model, crane_vehicle)
 
 # RESULT INFLUENCELINE BRIDGEMODEL
@@ -165,11 +167,11 @@ plot_M = {
         'selected_pos': 'red'
     }
 
-fig_M, ax_M = cr.plot_results(plot_M, pos_x_all, Mmax_env, Mmin_env, result_at_pos.results.M)
+fig_M, ax_M = cr.plot_results(plot_M, pos_x_all, Mmax_env, Mmin_env, result_at_pos.results.M, support_locations)
 fig_M.set_size_inches(7,5)
 st.pyplot(fig=fig_M)
 
-fig_V, ax_V = cr.plot_results(plot_V, pos_x_all, Vmax_env, Vmin_env, -result_at_pos.results.V)
+fig_V, ax_V = cr.plot_results(plot_V, pos_x_all, Vmax_env, Vmin_env, -result_at_pos.results.V, support_locations)
 fig_V.set_size_inches(7,5)
 st.pyplot(fig=fig_V)
 

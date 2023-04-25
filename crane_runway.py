@@ -6,11 +6,18 @@ import sectionproperties.pre.library.primitive_sections as primitive_sections
 from sectionproperties.analysis.section import Section
 from sectionproperties.pre.pre import Material
 import matplotlib.pyplot as plt
+import matplotlib.markers as markers
 import numpy as np
 import pycba as cba
 from typing import Union, Dict
+from dataclasses import dataclass
 
 
+@dataclass
+class Crane:
+    crane_load: float = 0
+    no_cranewheels: int = 0
+    dist_between_cranewheels: int = 0
 
 # Calculate Sectionproperties
 @st.cache_data
@@ -69,17 +76,13 @@ def create_crane_runway(
 
 # nocache
 def create_crane_vehicle(
-        beam_model: cba.BeamAnalysis,
-        dist_between_cranewheels: int,
-        no_cranewheels: int,
-        crane_load: float
-    ) -> cba.BridgeAnalysis:
+        beam_model: cba.BeamAnalysis, crane: cba.Vehicle) -> cba.BridgeAnalysis:
     
-    if no_cranewheels > 1:
-        axle_spacings: list[float] = [dist_between_cranewheels / 1000]*(no_cranewheels - 1)
+    if crane.no_cranewheels > 1:
+        axle_spacings: list[float] = [crane.dist_between_cranewheels / 1000]*(crane.no_cranewheels - 1)
     else:
         axle_spacings = []
-    axle_loads: list[float] = [crane_load / no_cranewheels] * no_cranewheels
+    axle_loads: list[float] = [crane.crane_load / crane.no_cranewheels] * crane.no_cranewheels
     
     crane_vehicle: cba.Vehicle = cba.Vehicle(axle_spacings=axle_spacings,  axle_weights=axle_loads)
     return crane_vehicle
@@ -95,11 +98,21 @@ def create_bridge_model(
 
 
 @st.cache_data
-def plot_results(plot_info, pos_x_all, data_max_env, data_min_env, data_at_selected_pos):
+def plot_results(
+    plot_info, 
+    pos_x_all, 
+    data_max_env, 
+    data_min_env, 
+    data_at_selected_pos, 
+    support_locations
+):
     fig, ax = plt.subplots()
     ax.set_title(plot_info['title'])
     ax.set_xlabel("m")
     ax.set_ylabel(plot_info['y_label'])
+    ax.plot([0,support_locations[-1]/1000],[0,0], color='gray', linewidth=3)
+    for support in support_locations:
+        ax.plot(support/1000, 0, marker=markers.CARETUP, color='gray', markersize=9)
     ax.plot(pos_x_all, data_max_env, plot_info['max'])
     ax.plot(pos_x_all, data_min_env, plot_info['min'])
     ax.plot(pos_x_all, -data_at_selected_pos, color=plot_info['selected_pos'])
