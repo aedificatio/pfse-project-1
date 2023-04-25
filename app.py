@@ -119,36 +119,35 @@ with show_handcalcs:
 # PyCBA
 stepsize: float = 0.05
 
-beam_model = cr.create_crane_runway(E_mod=E_mod, ixx=ixx, spans=spans, mass=mass)
-crane_vehicle = cr.create_crane_vehicle(beam_model=beam_model, crane=crane)
-bridge_model = cr.create_bridge_model(beam_model, crane_vehicle)
-
-# RESULT INFLUENCELINE BRIDGEMODEL
-results_envelope = bridge_model.run_vehicle(step=stepsize)
-results_critical_values = bridge_model.critical_values(results_envelope)
+results_envelope, results_critical_values, bridge_model = cr.calculate_envelopes(
+    E_mod, 
+    ixx, 
+    spans, 
+    mass, 
+    crane, 
+    stepsize
+)
 
 pos_x_all = results_envelope.x # Numpy array with x values
 
-min_value = float(min(pos_x_all))
-max_value = float(max(pos_x_all))
-
+# RESULT AT SELECTED POS
 pos_x_selected = st.slider(
     "Select position of beam crane", 
-    min_value=min_value, 
-    max_value=max_value, 
+    min_value = float(min(pos_x_all)),
+    max_value = float(max(pos_x_all)),
+    value=float(math.floor(pos_x_all.mean())),
     step=stepsize
 )
+result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
+
+
+
+
 
 Mmax_env = -results_envelope.Mmax
 Mmin_env = -results_envelope.Mmin
 Vmax_env = results_envelope.Vmax
 Vmin_env = results_envelope.Vmin
-
-
-# RESULT AT SELECTED POS
-result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
-
-
 
 
 
@@ -247,48 +246,7 @@ fig = plot_centroids.figure
 #     1.34
 #     )
 
-# fig = go.Figure()
 
-# # Plot lines
-# fig.add_trace(
-#     go.Scatter(
-#     x=results["a"][1], 
-#     y=results["a"][0],
-#     line={"color": "red"},
-#     name="Column A"
-#     )
-# )
-# fig.add_trace(
-#     go.Scatter(
-#     x=results["b"][1], 
-#     y=results["b"][0],
-#     line={"color": "teal"},
-#     name="Column B"
-#     )
-# )
-
-# fig.add_trace(
-#     go.Scatter(
-#         y=[height_input],
-#         x=[factored_load_a],
-#         name="Example Calculation: Column A"
-#     )
-# )
-
-# fig.add_trace(
-#     go.Scatter(
-#         y=[height_input],
-#         x=[factored_load_b],
-#         name="Example Calculation: Column B"
-#     )
-# )
-
-# fig.layout.title.text = "Factored axial resistance of Column A and Column B"
-# fig.layout.xaxis.title = "Factored axial resistance, N"
-# fig.layout.yaxis.title = "Height of column, mm"
-
-
-# st.plotly_chart(fig)
 
 # calc_expander_a = st.expander(label="Sample Calculation, Column A")
 # with calc_expander_a:

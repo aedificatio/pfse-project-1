@@ -121,7 +121,16 @@ def plot_results(
     ax.fill_between(pos_x_all, data_min_env, color=plot_info['min'], alpha=0.3)
     return fig, ax
 
+def calculate_envelopes(E_mod, ixx, spans, mass, crane, stepsize):
+    
 
+    beam_model = create_crane_runway(E_mod=E_mod, ixx=ixx, spans=spans, mass=mass)
+    crane_vehicle = create_crane_vehicle(beam_model=beam_model, crane=crane)
+    bridge_model = create_bridge_model(beam_model, crane_vehicle)
+    # RESULT INFLUENCELINE BRIDGEMODEL
+    results_envelope = bridge_model.run_vehicle(step=stepsize)
+    results_critical_values = bridge_model.critical_values(results_envelope)
+    return results_envelope, results_critical_values, bridge_model
 
 # TODO
 # docstrings module, class functions
