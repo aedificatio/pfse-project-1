@@ -140,40 +140,9 @@ pos_x_selected = st.slider(
 )
 result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
 
-
-
-
-
-Mmax_env = -results_envelope.Mmax
-Mmin_env = -results_envelope.Mmin
-Vmax_env = results_envelope.Vmax
-Vmin_env = results_envelope.Vmin
-
-
-
-plot_V = {
-        'title': "Shearforce",
-        'y_label': 'kN',
-        'max': 'red',
-        'min': 'orange',
-        'selected_pos': 'red'
-    }
-plot_M = {
-        'title': "Bending moment",
-        'y_label':'kNm',
-        'max': 'green',
-        'min': 'blue',
-        'selected_pos': 'red'
-    }
-
-fig_M, ax_M = cr.plot_results(plot_M, pos_x_all, Mmax_env, Mmin_env, result_at_pos.results.M, support_locations)
-fig_M.set_size_inches(7,5)
+fig_M, ax_M, fig_V, ax_V = cr.plot_MV_results(results_envelope, result_at_pos, support_locations)
 st.pyplot(fig=fig_M)
-
-fig_V, ax_V = cr.plot_results(plot_V, pos_x_all, Vmax_env, Vmin_env, -result_at_pos.results.V, support_locations)
-fig_V.set_size_inches(7,5)
 st.pyplot(fig=fig_V)
-
 
 
 

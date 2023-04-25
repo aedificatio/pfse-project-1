@@ -121,6 +121,7 @@ def plot_results(
     ax.fill_between(pos_x_all, data_min_env, color=plot_info['min'], alpha=0.3)
     return fig, ax
 
+@st.cache_data
 def calculate_envelopes(E_mod, ixx, spans, mass, crane, stepsize):
     
 
@@ -131,6 +132,43 @@ def calculate_envelopes(E_mod, ixx, spans, mass, crane, stepsize):
     results_envelope = bridge_model.run_vehicle(step=stepsize)
     results_critical_values = bridge_model.critical_values(results_envelope)
     return results_envelope, results_critical_values, bridge_model
+
+# Nocache
+def plot_MV_results(results_envelope, result_at_pos, support_locations):
+    plot_M = {
+        'title': "Bending moment",
+        'y_label':'kNm',
+        'max': 'green',
+        'min': 'blue',
+        'selected_pos': 'red'
+    }
+    plot_V = {
+        'title': "Shearforce",
+        'y_label': 'kN',
+        'max': 'red',
+        'min': 'orange',
+        'selected_pos': 'red'
+    }
+    fig_M, ax_M = plot_results(
+        plot_M, 
+        results_envelope.x, 
+        -results_envelope.Mmax, 
+        -results_envelope.Mmin, 
+        result_at_pos.results.M, 
+        support_locations
+    )
+    fig_M.set_size_inches(7,5)
+    
+    fig_V, ax_V = plot_results(
+        plot_V, 
+        results_envelope.x, 
+        results_envelope.Vmax, 
+        results_envelope.Vmin, 
+        -result_at_pos.results.V, 
+        support_locations
+    )
+    fig_V.set_size_inches(7,5)
+    return (fig_M, ax_M, fig_V, ax_V)
 
 # TODO
 # docstrings module, class functions
