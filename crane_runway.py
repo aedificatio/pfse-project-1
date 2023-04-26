@@ -14,26 +14,20 @@ from steel import section
 # Calculate Sectionproperties
 @st.cache_data
 def calc_sectionproperties(
-        fy, 
-        E_mod, 
-        rho,
-        top_flange_width, 
-        top_flange_height,
-        web_width,
-        web_height,
-        bot_flange_width,
-        bot_flange_height
+        material,
+        runway_section
     ):
     name='Steel'
     poissons_ratio=0.3
     color='blue'
 
-    steel = Material(name=name, elastic_modulus=E_mod, poissons_ratio=poissons_ratio, density=rho*1e-9,
-                 yield_strength=fy, color=color)
+    steel = Material(name=name, elastic_modulus=material.E_mod, poissons_ratio=poissons_ratio, density=material.rho*1e-9,
+                 yield_strength=material.fy, color=color)
 
-    top_flange = primitive_sections.rectangular_section(top_flange_width, top_flange_height, material=steel).shift_section(-top_flange_width / 2, web_height / 2)
-    web = primitive_sections.rectangular_section(web_width, web_height, material=steel).shift_section(-web_width / 2, -web_height / 2)
-    bot_flange = primitive_sections.rectangular_section(bot_flange_width, bot_flange_height, material=steel).shift_section(-bot_flange_width / 2, -web_height / 2 - bot_flange_height)
+    top_flange = primitive_sections.rectangular_section(
+        runway_section.top_flange_width, runway_section.top_flange_height, material=steel).shift_section(-runway_section.top_flange_width / 2, runway_section.web_height / 2)
+    web = primitive_sections.rectangular_section(runway_section.web_width, runway_section.web_height, material=steel).shift_section(-runway_section.web_width / 2, -runway_section.web_height / 2)
+    bot_flange = primitive_sections.rectangular_section(runway_section.bot_flange_width, runway_section.bot_flange_height, material=steel).shift_section(-runway_section.bot_flange_width / 2, -runway_section.web_height / 2 - runway_section.bot_flange_height)
     geometry = top_flange + web + bot_flange
     geometry.create_mesh(mesh_sizes=[15])
 
@@ -96,25 +90,28 @@ def plot_results(
     data_max_env, 
     data_min_env, 
     data_at_selected_pos, 
-    support_locations
+    support_locations,
+    wheel_locations
 ):
     fig, ax = plt.subplots()
     ax.set_title(plot_info['title'])
     ax.set_xlabel("m")
     ax.set_ylabel(plot_info['y_label'])
-    ax.plot([0,support_locations[-1]/1000],[0,0], color='gray', linewidth=3)
-    for support in support_locations:
-        ax.plot(support/1000, 0, marker=markers.CARETUP, color='gray', markersize=9)
     ax.plot(pos_x_all, data_max_env, plot_info['max'])
     ax.plot(pos_x_all, data_min_env, plot_info['min'])
     ax.plot(pos_x_all, -data_at_selected_pos, color=plot_info['selected_pos'])
     
     ax.fill_between(pos_x_all, data_max_env, color=plot_info['max'], alpha=0.3)
     ax.fill_between(pos_x_all, data_min_env, color=plot_info['min'], alpha=0.3)
+    ax.plot([0,support_locations[-1]/1000],[0,0], color='gray', linewidth=3)
+    for support in support_locations:
+        ax.plot(support/1000, 0, marker=markers.CARETUP, color='gray', markersize=9)
+    for wheel in wheel_locations:
+        ax.plot(wheel/1000, 0, marker=markers.CARETDOWN, color='purple', markersize=9)
     return fig, ax
 
 @st.cache_data
-def calculate_envelopes(E_mod, ixx, spans, mass, crane, stepsize):
+def calculate_envelopes(E_mod, spans, ixx, mass, crane, stepsize):
     
 
     beam_model = create_crane_runway(E_mod=E_mod, ixx=ixx, spans=spans, mass=mass)
@@ -126,7 +123,7 @@ def calculate_envelopes(E_mod, ixx, spans, mass, crane, stepsize):
     return results_envelope, results_critical_values, bridge_model
 
 # Nocache
-def plot_MV_results(results_envelope, result_at_pos, support_locations):
+def plot_MV_results(results_envelope, pos_x_selected, result_at_pos, rw_geometry, rw_crane):
     plot_M = {
         'title': "Bending moment",
         'y_label':'kNm',
@@ -147,7 +144,8 @@ def plot_MV_results(results_envelope, result_at_pos, support_locations):
         -results_envelope.Mmax, 
         -results_envelope.Mmin, 
         result_at_pos.results.M, 
-        support_locations
+        rw_geometry.support_locations(),
+        rw_crane.wheel_locations(pos_x_selected)
     )
     fig_M.set_size_inches(7,5)
     
@@ -157,7 +155,8 @@ def plot_MV_results(results_envelope, result_at_pos, support_locations):
         results_envelope.Vmax, 
         results_envelope.Vmin, 
         -result_at_pos.results.V, 
-        support_locations
+        rw_geometry.support_locations(),
+        rw_crane.wheel_locations(pos_x_selected)
     )
     fig_V.set_size_inches(7,5)
     return (fig_M, ax_M, fig_V, ax_V)
