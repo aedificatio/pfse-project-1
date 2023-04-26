@@ -161,6 +161,10 @@ with show_handcalcs:
     fig_plot_bendingstress = plot_stress.figure
     st.pyplot(fig=fig_plot_bendingstress)
 
+    sigma1_latex, sigma2_latex, sigma1_value, sigma2_value = cr.calc_bendingstresses(rw_section, absolute_max_moment)
+
+    st.latex(sigma1_latex)
+    st.write(sigma1_value)
 
 # st.write(results_critical_values) # dict met Min max values
 
@@ -172,7 +176,4 @@ fig = plot_centroids.figure
 # s = fig.add_axes()
 
 
-sigma1_latex, sigma2_latex, sigma1_value, sigma2_value = cr.calc_bendingstresses()
 
-st.latex(sigma1_latex)
-st.write(sigma1_value)

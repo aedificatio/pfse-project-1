@@ -1,12 +1,11 @@
 """
-A module for checking steel stresses.
+A module for calculating a crane runway beam steel stresses.
 """
 
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 from math import pi, sqrt
-from collections import defaultdict
-import streamlit as st
+
 
 @dataclass
 class Crane:

@@ -1,5 +1,6 @@
 import streamlit as st
 import sectionproperties.pre.library.primitive_sections as primitive_sections
+import sectionproperties.pre.library.steel_sections as steel_sections
 from sectionproperties.analysis.section import Section
 from sectionproperties.pre.pre import Material
 import matplotlib.pyplot as plt
@@ -28,12 +29,17 @@ def calc_sectionproperties(
         runway_section.top_flange_width, runway_section.top_flange_height, material=steel).shift_section(-runway_section.top_flange_width / 2, runway_section.web_height / 2)
     web = primitive_sections.rectangular_section(runway_section.web_width, runway_section.web_height, material=steel).shift_section(-runway_section.web_width / 2, -runway_section.web_height / 2)
     bot_flange = primitive_sections.rectangular_section(runway_section.bot_flange_width, runway_section.bot_flange_height, material=steel).shift_section(-runway_section.bot_flange_width / 2, -runway_section.web_height / 2 - runway_section.bot_flange_height)
+    
+    top_flange = top_flange - web # create common nodes between sections
+    bot_flange = bot_flange - web
+
     geometry = top_flange + web + bot_flange
     geometry.create_mesh(mesh_sizes=[15])
 
     section = Section(geometry)
     section.calculate_geometric_properties()
     section.calculate_warping_properties()
+    
     return section
 
 
@@ -167,9 +173,9 @@ hc_renderer = handcalc(override='long')
 sigma1 = hc_renderer(section.bending_stress)
 sigma2 = hc_renderer(section.bending_stress)
 
-def calc_bendingstresses():
-    sigma1_latex, sigma1_value = sigma1(M = 10e+6, ixx = 200e+10, e = 34.0)
-    sigma2_latex, sigma2_value = sigma2(M = 20e+6, ixx = 400e+10, e = 44.0)
+def calc_bendingstresses(rw_section, Mmax):
+    sigma1_latex, sigma1_value = sigma1(M = Mmax * 1e+6, ixx = rw_section.ixx(), e=rw_section.height()/2)
+    sigma2_latex, sigma2_value = sigma2(M = Mmax * 1e+6, ixx = 400e+10, e = 150.0)
 
 
 
