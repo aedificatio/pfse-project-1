@@ -161,10 +161,17 @@ with show_handcalcs:
     fig_plot_bendingstress = plot_stress.figure
     st.pyplot(fig=fig_plot_bendingstress)
 
-    sigma_latex, sigma_value = cr.calc_bendingstresses(rw_section, absolute_max_moment)
+    sigma_latex, sigma_value, sigma_alt_latex, sigma_alt_value = cr.calc_bendingstresses(rw_section, absolute_max_moment)
 
     st.latex(sigma_latex)
     st.write(sigma_value)
+    st.latex(sigma_alt_latex)
+    st.write(sigma_alt_value)
+
+    st.write(rw_section.Wx_top())
+    st.write(rw_section.Wx_bot())
+    st.write(rw_section.ex_top())
+    st.write(rw_section.ex_bot())
     
 
 

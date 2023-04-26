@@ -14,21 +14,40 @@ from steel import section
 
 # Calculate Sectionproperties
 @st.cache_data
-def calc_sectionproperties(
-        material,
-        runway_section
-    ):
-    name='Steel'
-    poissons_ratio=0.3
-    color='blue'
-
-    steel = Material(name=name, elastic_modulus=material.E_mod, poissons_ratio=poissons_ratio, density=material.rho*1e-9,
-                 yield_strength=material.fy, color=color)
+def calc_sectionproperties(material, runway_section):
+    
+    steel = Material(name='Steel', elastic_modulus=1, poissons_ratio=0.3, density=material.rho*1e-9,
+                 yield_strength=material.fy, color='blue')
 
     top_flange = primitive_sections.rectangular_section(
-        runway_section.top_flange_width, runway_section.top_flange_height, material=steel).shift_section(-runway_section.top_flange_width / 2, runway_section.web_height / 2)
-    web = primitive_sections.rectangular_section(runway_section.web_width, runway_section.web_height, material=steel).shift_section(-runway_section.web_width / 2, -runway_section.web_height / 2)
-    bot_flange = primitive_sections.rectangular_section(runway_section.bot_flange_width, runway_section.bot_flange_height, material=steel).shift_section(-runway_section.bot_flange_width / 2, -runway_section.web_height / 2 - runway_section.bot_flange_height)
+        runway_section.top_flange_width, 
+        runway_section.top_flange_height, 
+        material=steel
+    )
+    top_flange = top_flange.shift_section(
+        -runway_section.top_flange_width / 2, 
+        runway_section.web_height / 2
+    )
+
+    web = primitive_sections.rectangular_section(
+        runway_section.web_width, 
+        runway_section.web_height, 
+        material=steel
+    )
+    web = web.shift_section(
+        -runway_section.web_width / 2, 
+        -runway_section.web_height / 2
+    )
+
+    bot_flange = primitive_sections.rectangular_section(
+        runway_section.bot_flange_width, 
+        runway_section.bot_flange_height,
+        material=steel
+    )
+    bot_flange = bot_flange.shift_section(
+        -runway_section.bot_flange_width / 2, 
+        -runway_section.web_height / 2 - runway_section.bot_flange_height
+    )
     
     top_flange = top_flange - web # create common nodes between sections
     bot_flange = bot_flange - web
@@ -38,8 +57,9 @@ def calc_sectionproperties(
 
     section = Section(geometry)
     section.calculate_geometric_properties()
-    section.calculate_warping_properties()
     
+    
+
     return section
 
 
@@ -189,14 +209,18 @@ def plot_MV_results(results_envelope, pos_x_selected, result_at_pos, rw_geometry
 hc_renderer = handcalc(override='long')
 
 sigma = hc_renderer(section.bending_stress)
-
+sigma_alternative = hc_renderer(section.bending_stress_alternative)
 
 
 def calc_bendingstresses(rw_section, Mmax):
     """
     Calculate the stresses by the bendingmoment.
     """
-    sigma1_latex, sigma1_value = sigma(M = Mmax * 1e+6, ixx = rw_section.ixx(), e=rw_section.height()/2)
+    sigma_latex, sigma_value = sigma(M = Mmax * 1e+6, ixx = rw_section.ixx(), e=rw_section.height()/2)
+    sigma_alt_latex, sigma_alt_value = sigma_alternative(M = Mmax * 1e+6, Wx = rw_section.Wx_top())
+    # sigma_alt_latex, sigma_alt_value = sigma_alternative(M = Mmax * 1e+6, Wx = rw_section.Wx_bot())
     
-    return sigma1_latex, sigma1_value
+
+
+    return sigma_latex, sigma_value, sigma_alt_latex, sigma_alt_value
 

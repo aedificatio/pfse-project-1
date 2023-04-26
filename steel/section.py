@@ -76,6 +76,19 @@ class Runway_section:
         ixx, iyy, ixy = self.section.get_ic()
         return ixx
     
+    def Wx_top(self):
+        zxx_plus, zxx_minus, zyy_plus, zyy_minus = self.section.get_z()
+        return zxx_plus
+    
+    def Wx_bot(self):
+        zxx_plus, zxx_minus, zyy_plus, zyy_minus = self.section.get_z()
+        return zxx_minus
+    
+    def ex_top(self):
+        return self.ixx() / self.Wx_top()
+    
+    def ex_bot(self):
+        return self.ixx() / self.Wx_bot()
 
 
 @dataclass
@@ -93,4 +106,11 @@ def bending_stress(M: float, ixx: float, e: float) -> float:
     Calculates bendingstress given M, e and ixx.
     """
     sigma = (M * e) / ixx
+    return sigma
+
+def bending_stress_alternative(M: float, Wx: float) -> float:
+    """
+    Calculates bendingstress given M and Wx.
+    """
+    sigma = M / Wx
     return sigma
