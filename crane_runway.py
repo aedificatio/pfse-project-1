@@ -1,23 +1,15 @@
 import streamlit as st
-import plotly.graph_objects as go
-import sample_app_module as sam
-import crane_runway as cr
 import sectionproperties.pre.library.primitive_sections as primitive_sections
 from sectionproperties.analysis.section import Section
 from sectionproperties.pre.pre import Material
 import matplotlib.pyplot as plt
 import matplotlib.markers as markers
-import numpy as np
 import pycba as cba
 from typing import Union, Dict
 from dataclasses import dataclass
+from handcalcs.decorator import handcalc
+from steel import section
 
-
-@dataclass
-class Crane:
-    crane_load: float = 0
-    no_cranewheels: int = 0
-    dist_between_cranewheels: int = 0
 
 # Calculate Sectionproperties
 @st.cache_data
@@ -169,6 +161,44 @@ def plot_MV_results(results_envelope, result_at_pos, support_locations):
     )
     fig_V.set_size_inches(7,5)
     return (fig_M, ax_M, fig_V, ax_V)
+
+
+hc_renderer = handcalc(override='long')
+
+sigma1 = hc_renderer(section.bending_stress)
+sigma2 = hc_renderer(section.bending_stress)
+
+def calc_bendingstresses():
+    sigma1_latex, sigma1_value = sigma1(M = 10e+6, ixx = 200e+10, e = 34.0)
+    sigma2_latex, sigma2_value = sigma2(M = 20e+6, ixx = 400e+10, e = 44.0)
+
+
+
+    return sigma1_latex, sigma2_latex, sigma1_value, sigma2_value
+    # return 2,3,4,5
+
+# calc_euler_buckling = hc_renderer(columns.eulerbucklingload)
+# calc_factored_resistance = hc_renderer(columns.factored_axial_capacity)
+
+# def calc_pr_at_given_height(area: float, Ix: float, Iy: float, kx: float, ky: float, L: float, E: float, fy: float, n: float, phi=0.9):
+#     """
+#     Doc strings
+#     """
+#     xbuckling_latex, _ = calc_euler_buckling(E, Ix, kx, L)
+#     ybuckling_latex, _ = calc_euler_buckling(E, Iy, ky, L)
+#     factored_latex, factored_load = calc_factored_resistance(
+#         area,
+#         Ix,
+#         Iy,
+#         kx,
+#         ky,
+#         L,
+#         E,
+#         fy,
+#         n,
+#         phi
+#         )
+#     return [xbuckling_latex, ybuckling_latex, factored_latex], factored_load
 
 # TODO
 # docstrings module, class functions

@@ -1,11 +1,7 @@
+import math
 import streamlit as st
 import crane_runway as cr
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pycba as cba
-from typing import Union, Dict
-import math
+from steel import section
 
 st.header("Designcalculation of a Crane runway.")
 st.write("NOT for use in real-life. \
@@ -13,33 +9,30 @@ st.write("NOT for use in real-life. \
 
 # Geometry Parameters
 st.sidebar.header("Geometry Parameters")
-no_spans = st.sidebar.slider(
+runway_geometry = section.Runway_geometry()
+runway_geometry.no_spans = st.sidebar.slider(
     "Number of spans: ", 
     min_value=1, 
     max_value=5, 
     value=3
 )
 st.sidebar.write("")
-spans = {}
-for idx, span in enumerate([0] * no_spans,start = 1):
-    spans[idx] = st.sidebar.slider(
+
+for idx in range(1, runway_geometry.no_spans + 1):
+    runway_geometry.spans[idx] = st.sidebar.slider(
         f"Span {idx} - Length in (mm):",
         min_value=250, 
         max_value=9000, 
         value=5000,
         step = 250
     )
-support_locations = [0]
-for idx, _ in enumerate(spans):
-    support_to_add = sum(list(spans.values())[0:idx+1])
-    support_locations.append(support_to_add)
 
 
 # Bridge Crane Parameters
 st.sidebar.write("")
 st.sidebar.header("Bridge Crane Parameters")
 
-crane = cr.Crane()
+crane = section.Crane()
 crane.crane_load = st.sidebar.number_input("Max Crane Load (kN)", value=350, step=10)
 st.sidebar.write("(This includes self-weight of the bridge crane)")
 crane.no_cranewheels = st.sidebar.slider(
@@ -61,9 +54,10 @@ crane.dist_between_cranewheels = st.sidebar.slider(
 steel_properties = st.expander(label="Steel Properties")
 with steel_properties:
     st.header("Steel Properties")
-    fy = st.number_input("Yield strength (MPa)", value=235)
-    E_mod = st.number_input("Elastic modulus (MPa)", value=200e3)
-    rho = st.number_input("Density ($kg/m^3$)", value = 7850)
+    material = section.Material()
+    material.fy = st.number_input("Yield strength (MPa)", value=235)
+    material.E_mod = st.number_input("Elastic modulus (MPa)", value=200e3)
+    material.rho = st.number_input("Density ($kg/m^3$)", value = 7850)
 
 
 # Section Properties
@@ -78,9 +72,9 @@ with section_properties:
     bot_flange_height = st.number_input("Height bottom flange (mm)", value = 15)
 
     section = cr.calc_sectionproperties(
-        fy=fy, 
-        E_mod=E_mod, 
-        rho=rho,
+        fy=material.fy, 
+        E_mod=material.E_mod, 
+        rho=material.rho,
         top_flange_width=top_flange_width, 
         top_flange_height=top_flange_height,
         web_width= web_width,
@@ -113,9 +107,9 @@ with calculate_runway:
     stepsize: float = 0.05
 
     results_envelope, results_critical_values, bridge_model = cr.calculate_envelopes(
-        E_mod, 
+        material.E_mod, 
         ixx, 
-        spans, 
+        runway_geometry.spans, 
         mass, 
         crane, 
         stepsize
@@ -133,7 +127,7 @@ with calculate_runway:
     )
     result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
 
-    fig_M, ax_M, fig_V, ax_V = cr.plot_MV_results(results_envelope, result_at_pos, support_locations)
+    fig_M, ax_M, fig_V, ax_V = cr.plot_MV_results(results_envelope, result_at_pos, runway_geometry.support_locations())
     st.pyplot(fig=fig_M)
     st.pyplot(fig=fig_V)
 
@@ -144,16 +138,21 @@ show_handcalcs = st.expander(label="Show Hand Calculation for runway stresses")
 with show_handcalcs:
     st.header("Show Hand Calculation for runway stresses")
 
+    N=1e3
+    Vy=3e3
+    Mxx=1e20
+
+    stress_post = section.calculate_stress(N=N, Vy=Vy, Mxx=Mxx)
+    # plot_stress = stress_post.plot_stress_vm()
+    plot_stress = stress_post.plot_stress_m_zz()
+    
+
+    fig_plot_bendingstress = plot_stress.figure
+    st.pyplot(fig=fig_plot_bendingstress)
 
 
 # st.write(results_critical_values) # dict met Min max values
 
-# N=1e3
-# Vy=3e3
-# Mxx=1e6
-
-# stress_post = section.calculate_stress(N=N, Vy=Vy, Mxx=Mxx)
-# plot_stress_vm = stress_post.plot_stress_vm()
 # fig, ax = plt.subplots()
 # ax = plot_centroids
 
@@ -162,8 +161,10 @@ fig = plot_centroids.figure
 # s = fig.add_axes()
 
 
+sigma1_latex, sigma2_latex, sigma1_value, sigma2_value = cr.calc_bendingstresses()
 
-
+st.latex(sigma1_latex)
+st.write(sigma1_value)
 
 # example_latex_a, factored_load_a = sam.calc_pr_at_given_height(
 #     area_a, 
