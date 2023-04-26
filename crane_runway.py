@@ -50,6 +50,9 @@ def create_crane_runway(
         spans: Dict[int, float],
         mass: float
     ) -> cba.BeamAnalysis:
+    """
+    Returns a PyCBA BeamAnalysis object.
+    """
     EI_spans:float = [E_mod * ixx / 1000] * len(spans) # kN/m2
     supports: list[float] = [-1, 0] * (len(spans) + 1) # [rigid vertical support, no rotation capacity]
     UDL: float = mass / 100 # kN/m1
@@ -68,8 +71,11 @@ def create_crane_runway(
 
 # nocache
 def create_crane_vehicle(
-        beam_model: cba.BeamAnalysis, crane: cba.Vehicle) -> cba.BridgeAnalysis:
-    
+        beam_model: cba.BeamAnalysis, crane: section.Crane
+    ) -> cba.Vehicle:
+    """
+    Returns a PyCBA Vehicle object.
+    """
     if crane.no_cranewheels > 1:
         axle_spacings: list[float] = [crane.dist_between_cranewheels / 1000]*(crane.no_cranewheels - 1)
     else:
@@ -83,8 +89,11 @@ def create_crane_vehicle(
 # nocache
 def create_bridge_model(
         beam_model: cba.BeamAnalysis, 
-        crane_vehicle: cba.BridgeAnalysis
+        crane_vehicle: cba.Vehicle
     ) -> cba.BridgeAnalysis:
+    """
+    Returns a PyCBA BridgeAnalysis object.
+    """
     bridge_model: cba.BridgeAnalysis = cba.BridgeAnalysis(beam_model, crane_vehicle)
     return bridge_model
 
@@ -99,6 +108,9 @@ def plot_results(
     support_locations,
     wheel_locations
 ):
+    """
+    Returns a Matplotlib Axes object.
+    """
     fig, ax = plt.subplots()
     ax.set_title(plot_info['title'])
     ax.set_xlabel("m")
@@ -118,7 +130,9 @@ def plot_results(
 
 @st.cache_data
 def calculate_envelopes(E_mod, spans, ixx, mass, crane, stepsize):
-    
+    """
+    Calculates the envelope forces on a crane runway.
+    """
 
     beam_model = create_crane_runway(E_mod=E_mod, ixx=ixx, spans=spans, mass=mass)
     crane_vehicle = create_crane_vehicle(beam_model=beam_model, crane=crane)
@@ -130,6 +144,10 @@ def calculate_envelopes(E_mod, spans, ixx, mass, crane, stepsize):
 
 # Nocache
 def plot_MV_results(results_envelope, pos_x_selected, result_at_pos, rw_geometry, rw_crane):
+    """
+    Plots the Bendingmoments and Shearforces of the envelope forces and alse the
+    forces with the crane at a specifief position.
+    """
     plot_M = {
         'title': "Bending moment",
         'y_label':'kNm',
@@ -170,43 +188,15 @@ def plot_MV_results(results_envelope, pos_x_selected, result_at_pos, rw_geometry
 
 hc_renderer = handcalc(override='long')
 
-sigma1 = hc_renderer(section.bending_stress)
-sigma2 = hc_renderer(section.bending_stress)
+sigma = hc_renderer(section.bending_stress)
+
+
 
 def calc_bendingstresses(rw_section, Mmax):
-    sigma1_latex, sigma1_value = sigma1(M = Mmax * 1e+6, ixx = rw_section.ixx(), e=rw_section.height()/2)
-    sigma2_latex, sigma2_value = sigma2(M = Mmax * 1e+6, ixx = 400e+10, e = 150.0)
+    """
+    Calculate the stresses by the bendingmoment.
+    """
+    sigma1_latex, sigma1_value = sigma(M = Mmax * 1e+6, ixx = rw_section.ixx(), e=rw_section.height()/2)
+    
+    return sigma1_latex, sigma1_value
 
-
-
-    return sigma1_latex, sigma2_latex, sigma1_value, sigma2_value
-    # return 2,3,4,5
-
-# calc_euler_buckling = hc_renderer(columns.eulerbucklingload)
-# calc_factored_resistance = hc_renderer(columns.factored_axial_capacity)
-
-# def calc_pr_at_given_height(area: float, Ix: float, Iy: float, kx: float, ky: float, L: float, E: float, fy: float, n: float, phi=0.9):
-#     """
-#     Doc strings
-#     """
-#     xbuckling_latex, _ = calc_euler_buckling(E, Ix, kx, L)
-#     ybuckling_latex, _ = calc_euler_buckling(E, Iy, ky, L)
-#     factored_latex, factored_load = calc_factored_resistance(
-#         area,
-#         Ix,
-#         Iy,
-#         kx,
-#         ky,
-#         L,
-#         E,
-#         fy,
-#         n,
-#         phi
-#         )
-#     return [xbuckling_latex, ybuckling_latex, factored_latex], factored_load
-
-# TODO
-# docstrings module, class functions
-# imports
-# classes
-# plot markers

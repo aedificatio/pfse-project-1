@@ -103,7 +103,6 @@ with calculate_runway:
 
     pos_x_all = results_envelope.x # Numpy array with x values
 
-    # RESULT AT SELECTED POS
     pos_x_selected = st.slider(
         "Select position of beam crane", 
         min_value = float(min(pos_x_all)),
@@ -111,13 +110,14 @@ with calculate_runway:
         value=float(math.floor(pos_x_all.mean())),
         step=stepsize
     )
+    # RESULT AT SELECTED POS
     result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
 
     fig_M, ax_M, fig_V, ax_V = cr.plot_MV_results(results_envelope, pos_x_selected, result_at_pos, rw_geometry, rw_crane)
     st.pyplot(fig=fig_M)
     st.pyplot(fig=fig_V)
 
-    st.subheader("Envelope Bendingmoments")
+    st.subheader("Max & Min Bendingmoments")
     st.write(
         f"{-results_critical_values['Mmax']['val']:.3f} kNm \
         at {results_critical_values['Mmax']['at']:.3f} m \
@@ -128,7 +128,7 @@ with calculate_runway:
         at {results_critical_values['Mmin']['at']:.3f} m \
         with crane position {results_critical_values['Mmin']['pos']}"
     )
-    st.subheader("Envelope Shearforces")
+    st.subheader("Max & Min Shearforces")
     st.write(
         f"{results_critical_values['Vmax']['val']:.3f} kN \
         at {results_critical_values['Vmax']['at']:.3f} m \
@@ -151,7 +151,7 @@ with show_handcalcs:
     absolute_max_moment = max(abs(Mmax), abs(Mmin))
     st.write(f"The absolute maximum bendingmoment is {absolute_max_moment:.3f} kNm")
     
-    Mxx=absolute_max_moment*1e+6
+    Mxx=absolute_max_moment*1e+6 # Nmm
 
     stress_post = rw_section.section.calculate_stress(Mxx=Mxx)
     # plot_stress = stress_post.plot_stress_vm()
@@ -161,19 +161,12 @@ with show_handcalcs:
     fig_plot_bendingstress = plot_stress.figure
     st.pyplot(fig=fig_plot_bendingstress)
 
-    sigma1_latex, sigma2_latex, sigma1_value, sigma2_value = cr.calc_bendingstresses(rw_section, absolute_max_moment)
+    sigma_latex, sigma_value = cr.calc_bendingstresses(rw_section, absolute_max_moment)
 
-    st.latex(sigma1_latex)
-    st.write(sigma1_value)
+    st.latex(sigma_latex)
+    st.write(sigma_value)
+    
 
-# st.write(results_critical_values) # dict met Min max values
-
-# fig, ax = plt.subplots()
-# ax = plot_centroids
-
-fig = plot_centroids.figure
-# axes = fig.add_axes(plot_centroids)
-# s = fig.add_axes()
 
 
 
