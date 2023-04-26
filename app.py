@@ -117,6 +117,28 @@ with calculate_runway:
     st.pyplot(fig=fig_M)
     st.pyplot(fig=fig_V)
 
+    st.subheader("Envelope Bendingmoments")
+    st.write(
+        f"{-results_critical_values['Mmax']['val']:.3f} kNm \
+        at {results_critical_values['Mmax']['at']:.3f} m \
+        with crane position {results_critical_values['Mmax']['pos']}"
+    )
+    st.write(
+        f"{-results_critical_values['Mmin']['val']:.3f} kNm \
+        at {results_critical_values['Mmin']['at']:.3f} m \
+        with crane position {results_critical_values['Mmin']['pos']}"
+    )
+    st.subheader("Envelope Shearforces")
+    st.write(
+        f"{results_critical_values['Vmax']['val']:.3f} kN \
+        at {results_critical_values['Vmax']['at']:.3f} m \
+        with crane position {results_critical_values['Vmax']['pos']}"
+    )
+    st.write(
+        f"{results_critical_values['Vmin']['val']:.3f} kN \
+        at {results_critical_values['Vmin']['at']:.3f} m \
+        with crane position {results_critical_values['Vmin']['pos']}"
+    )
 
 
 # Show Hand Calculation for runway stresses
@@ -124,11 +146,14 @@ show_handcalcs = st.expander(label="Show Hand Calculation for runway stresses")
 with show_handcalcs:
     st.header("Show Hand Calculation for runway stresses")
 
-    N=1e3
-    Vy=3e3
-    Mxx=1e20
+    Mmax = -results_critical_values['Mmax']['val']
+    Mmin = -results_critical_values['Mmin']['val']
+    absolute_max_moment = max(abs(Mmax), abs(Mmin))
+    st.write(f"The absolute maximum bendingmoment is {absolute_max_moment:.3f} kNm")
+    
+    Mxx=absolute_max_moment*1e+6
 
-    stress_post = rw_section.section.calculate_stress(N=N, Vy=Vy, Mxx=Mxx)
+    stress_post = rw_section.section.calculate_stress(Mxx=Mxx)
     # plot_stress = stress_post.plot_stress_vm()
     plot_stress = stress_post.plot_stress_m_zz()
     
@@ -151,26 +176,3 @@ sigma1_latex, sigma2_latex, sigma1_value, sigma2_value = cr.calc_bendingstresses
 
 st.latex(sigma1_latex)
 st.write(sigma1_value)
-
-# example_latex_a, factored_load_a = sam.calc_pr_at_given_height(
-#     area_a, 
-#     i_x_a*1e6, 
-#     i_y_a*1e6, 
-#     1.0, 
-#     1.0, 
-#     height_input,
-#     E_a, 
-#     fy_a, 
-#     1.34
-#     )
-
-
-
-
-
-# calc_expander_a = st.expander(label="Sample Calculation, Column A")
-# with calc_expander_a:
-#     for calc in example_latex_a:
-#         st.latex(
-#             calc
-#         )
