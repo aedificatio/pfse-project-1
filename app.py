@@ -92,6 +92,7 @@ with section_properties:
     area = section.get_area() # mm2
     mass = section.get_mass() * 1000 # kg/m1
     ixx, iyy, ixy = section.get_ic()
+    height = top_flange_height + web_height + bot_flange_height
 
     st.write(f"The current section has the following properties:")
     st.write(f"- Mass of {mass:.3f} ($kg/m^1$)")
@@ -99,52 +100,49 @@ with section_properties:
     st.write(f"- $I_y$ = {ixx/10000:.0f} ($10^4 mm^4$)")
     st.write(f"- $I_z$ = {iyy/10000:.0f} ($10^4 mm^4$)")
 
-
-# Plot Section
-plot_current_section = st.expander(label="Plot Section")
-with plot_current_section:
     st.header("Plot Section")
     plot_centroids = section.plot_centroids()
     fig_plot_centroids = plot_centroids.figure
     st.pyplot(fig=fig_plot_centroids)
 
 
+# Calculate Runway
+calculate_runway = st.expander(label="Calculate Crane Runway")
+with calculate_runway:
+
+    stepsize: float = 0.05
+
+    results_envelope, results_critical_values, bridge_model = cr.calculate_envelopes(
+        E_mod, 
+        ixx, 
+        spans, 
+        mass, 
+        crane, 
+        stepsize
+    )
+
+    pos_x_all = results_envelope.x # Numpy array with x values
+
+    # RESULT AT SELECTED POS
+    pos_x_selected = st.slider(
+        "Select position of beam crane", 
+        min_value = float(min(pos_x_all)),
+        max_value = float(max(pos_x_all)),
+        value=float(math.floor(pos_x_all.mean())),
+        step=stepsize
+    )
+    result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
+
+    fig_M, ax_M, fig_V, ax_V = cr.plot_MV_results(results_envelope, result_at_pos, support_locations)
+    st.pyplot(fig=fig_M)
+    st.pyplot(fig=fig_V)
+
+
+
 # Show Hand Calculation for runway stresses
 show_handcalcs = st.expander(label="Show Hand Calculation for runway stresses")
 with show_handcalcs:
     st.header("Show Hand Calculation for runway stresses")
-    
-
-
-# PyCBA
-stepsize: float = 0.05
-
-results_envelope, results_critical_values, bridge_model = cr.calculate_envelopes(
-    E_mod, 
-    ixx, 
-    spans, 
-    mass, 
-    crane, 
-    stepsize
-)
-
-pos_x_all = results_envelope.x # Numpy array with x values
-
-# RESULT AT SELECTED POS
-pos_x_selected = st.slider(
-    "Select position of beam crane", 
-    min_value = float(min(pos_x_all)),
-    max_value = float(max(pos_x_all)),
-    value=float(math.floor(pos_x_all.mean())),
-    step=stepsize
-)
-result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
-
-fig_M, ax_M, fig_V, ax_V = cr.plot_MV_results(results_envelope, result_at_pos, support_locations)
-st.pyplot(fig=fig_M)
-st.pyplot(fig=fig_V)
-
-
 
 
 
@@ -167,30 +165,6 @@ fig = plot_centroids.figure
 
 
 
-
-
-
-
-
-# # Calculation of "resistance lines"
-# results = sam.compare_two_columns(
-#     min_height,
-#     max_height,
-#     interval,
-#     area_a,
-#     i_x_a * 1e6,
-#     i_y_a * 1e6,
-#     E_a,
-#     fy_a,
-#     area_b,
-#     i_x_b * 1e6,
-#     i_y_b * 1e6,
-#     E_b,
-#     fy_b,
-# )
-
-# height_input = st.number_input(label="Height", min_value=min_height, max_value=max_height)
-# # Calculation of individual point for plot marker and example calculations
 # example_latex_a, factored_load_a = sam.calc_pr_at_given_height(
 #     area_a, 
 #     i_x_a*1e6, 
@@ -203,30 +177,13 @@ fig = plot_centroids.figure
 #     1.34
 #     )
 
-# example_latex_b, factored_load_b = sam.calc_pr_at_given_height(
-#     area_b, 
-#     i_x_b*1e6, 
-#     i_y_b*1e6, 
-#     1.0, 
-#     1.0, 
-#     height_input,
-#     E_b, 
-#     fy_b, 
-#     1.34
-#     )
+
 
 
 
 # calc_expander_a = st.expander(label="Sample Calculation, Column A")
 # with calc_expander_a:
 #     for calc in example_latex_a:
-#         st.latex(
-#             calc
-#         )
-
-# calc_expander_b = st.expander(label="Sample Calculation, Column B")
-# with calc_expander_b:
-#     for calc in example_latex_b:
 #         st.latex(
 #             calc
 #         )
