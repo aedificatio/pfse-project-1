@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.markers as markers
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from handcalcs.decorator import handcalc
 
 @dataclass
@@ -186,12 +186,6 @@ def plot_results(
     return fig, ax
 
 
-
-
-
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-
 def calculate_abs_max_bendingmoment(results_critical_values: Dict) -> float:
     """
     Returns the absolute maximum value of the envelope bending moments as a float.
@@ -201,12 +195,6 @@ def calculate_abs_max_bendingmoment(results_critical_values: Dict) -> float:
     absolute_max_moment = max(abs(Mmax), abs(Mmin))
     return absolute_max_moment
 
-def handcalculations(rw_section, Mxx):
-    """
-    """
-    sigmas_latex, sigmas_values = _calc_bendingstresses(rw_section, Mxx)
-    return sigmas_latex, sigmas_values
-
 
 def bending_stress_ixx(M: float, I_y: float, e_top: float) -> float:
     """
@@ -215,11 +203,12 @@ def bending_stress_ixx(M: float, I_y: float, e_top: float) -> float:
     sigma_s = (M * e_top) / I_y
     return sigma_s
 
-def bending_stress_wxx(M: float, W_xxBot: float) -> float:
+
+def bending_stress_wxx(M: float, W_yBot: float) -> float:
     """
     Calculates bendingstress given M and Wxx.
     """
-    sigma_s = M / W_xxBot
+    sigma_s = M / W_yBot
     return sigma_s
 
 
@@ -229,10 +218,11 @@ sigma_ixx = hc_renderer(bending_stress_ixx)
 sigma_wxx = hc_renderer(bending_stress_wxx)
 
 
-def _calc_bendingstresses(rw_section, Mmax):
+def handcalculations(rw_section: Runway_section, Mmax: float) -> Tuple[list[str], list[float]]:
     """
     Calculate the stresses by the bendingmoment.
     """
+    
     calcs_latex = []
     calcs_values = []
 
@@ -240,12 +230,8 @@ def _calc_bendingstresses(rw_section, Mmax):
     calcs_latex.append(sigma_latex)
     calcs_values.append(sigma_value)
 
-    sigma_latex, sigma_value = sigma_wxx(M=Mmax, W_xxBot=rw_section.Wx_bot())
+    sigma_latex, sigma_value = sigma_wxx(M=-Mmax, W_yBot=rw_section.Wx_bot())
     calcs_latex.append(sigma_latex)
     calcs_values.append(sigma_value)
-    
+
     return calcs_latex, calcs_values
-
-
-
-
