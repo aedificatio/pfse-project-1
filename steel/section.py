@@ -190,37 +190,61 @@ def plot_results(
 
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-def bending_stress(M: float, ixx: float, e: float) -> float:
+
+
+def calculate_abs_max_bendingmoment(results_critical_values: Dict) -> float:
+    """
+    Returns the absolute maximum value of the envelope bending moments as a float.
+    """
+    Mmax = -results_critical_values['Mmax']['val']
+    Mmin = -results_critical_values['Mmin']['val']
+    absolute_max_moment = max(abs(Mmax), abs(Mmin))
+    return absolute_max_moment
+
+def handcalculations(rw_section, Mxx):
+    """
+    """
+    sigmas_latex, sigmas_values = _calc_bendingstresses(rw_section, Mxx)
+    return sigmas_latex, sigmas_values
+
+
+def bending_stress_ixx(M: float, I_y: float, e_top: float) -> float:
     """
     Calculates bendingstress given M, e and ixx.
     """
-    sigma = (M * e) / ixx
-    return sigma
+    sigma_s = (M * e_top) / I_y
+    return sigma_s
 
-def bending_stress_alternative(M: float, Wx: float) -> float:
+def bending_stress_wxx(M: float, W_xxBot: float) -> float:
     """
-    Calculates bendingstress given M and Wx.
+    Calculates bendingstress given M and Wxx.
     """
-    sigma = M / Wx
-    return sigma
-
-hc_renderer = handcalc(override='long')
-
-sigma = hc_renderer(bending_stress)
-sigma_alternative = hc_renderer(bending_stress_alternative)
+    sigma_s = M / W_xxBot
+    return sigma_s
 
 
-def calc_bendingstresses(rw_section, Mmax):
+hc_renderer = handcalc(override='short', decimal_separator=',')
+
+sigma_ixx = hc_renderer(bending_stress_ixx)
+sigma_wxx = hc_renderer(bending_stress_wxx)
+
+
+def _calc_bendingstresses(rw_section, Mmax):
     """
     Calculate the stresses by the bendingmoment.
     """
-    sigma_latex, sigma_value = sigma(M = Mmax * 1e+6, ixx = rw_section.ixx(), e=rw_section.height()/2)
-    sigma_alt_latex, sigma_alt_value = sigma_alternative(M = Mmax * 1e+6, Wx = rw_section.Wx_top())
-    # sigma_alt_latex, sigma_alt_value = sigma_alternative(M = Mmax * 1e+6, Wx = rw_section.Wx_bot())
+    calcs_latex = []
+    calcs_values = []
+
+    sigma_latex, sigma_value = sigma_ixx(M=Mmax, I_y=rw_section.ixx(), e_top=rw_section.ex_top())
+    calcs_latex.append(sigma_latex)
+    calcs_values.append(sigma_value)
+
+    sigma_latex, sigma_value = sigma_wxx(M=Mmax, W_xxBot=rw_section.Wx_bot())
+    calcs_latex.append(sigma_latex)
+    calcs_values.append(sigma_value)
     
-
-
-    return sigma_latex, sigma_value, sigma_alt_latex, sigma_alt_value
+    return calcs_latex, calcs_values
 
 
 

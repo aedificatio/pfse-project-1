@@ -69,8 +69,8 @@ with section_properties:
     rw_section.top_flange_height = st.number_input("Height top flange (mm)", value = 15)
     rw_section.web_width = st.number_input("Width of the web (mm)", value = 12)
     rw_section.web_height = st.number_input("Height of the web (mm)", value = 500)
-    rw_section.bot_flange_width = st.number_input("Width bottom flange (mm)", value = 200)
-    rw_section.bot_flange_height = st.number_input("Height bottom flange (mm)", value = 20)
+    rw_section.bot_flange_width = st.number_input("Width bottom flange (mm)", value = 150)
+    rw_section.bot_flange_height = st.number_input("Height bottom flange (mm)", value = 15)
 
     rw_section.section = cr.calc_sectionproperties(
         material=rw_material,
@@ -152,33 +152,25 @@ show_handcalcs = st.expander(label="Show Hand Calculation For Runway Stresses")
 with show_handcalcs:
     st.header("Show Hand Calculation For Runway Stresses")
 
-    Mmax = -results_critical_values['Mmax']['val']
-    Mmin = -results_critical_values['Mmin']['val']
-    absolute_max_moment = max(abs(Mmax), abs(Mmin))
-    st.write(f"The absolute maximum bendingmoment is {absolute_max_moment:.3f} kNm")
-    
+    st.write(f"The section height is {rw_section.height():.3f} mm")
+    st.write(f"e_top is {rw_section.ex_top():.3f} mm and Wx_top is {rw_section.Wx_top()/1000:.3f} $10^3 mm^3$")
+    st.write(f"e_bot is {rw_section.ex_bot():.3f} mm and Wx_bot is {rw_section.Wx_bot()/1000:.3f} $10^3 mm^3$")
+
+    absolute_max_moment = section.calculate_abs_max_bendingmoment(results_critical_values)
     Mxx=absolute_max_moment*1e+6 # Nmm
 
-    stress_post = rw_section.section.calculate_stress(Mxx=Mxx)
-    # plot_stress = stress_post.plot_stress_vm()
-    plot_stress = stress_post.plot_stress_m_zz()
+    st.write(f"The absolute maximum bendingmoment is {absolute_max_moment:.3f} kNm")
     
+    calcs_latex, calcs_values = section.handcalculations(rw_section, Mxx)
 
+    for calc in calcs_latex:
+        st.latex(calc)
+
+    st.subheader("Calculated stress by sectionproperties.")
+    stress_post = rw_section.section.calculate_stress(Mxx=Mxx)
+    plot_stress = stress_post.plot_stress_m_zz()
     fig_plot_bendingstress = plot_stress.figure
     st.pyplot(fig=fig_plot_bendingstress)
-
-    sigma_latex, sigma_value, sigma_alt_latex, sigma_alt_value = section.calc_bendingstresses(rw_section, absolute_max_moment)
-
-    st.latex(sigma_latex)
-    st.write(sigma_value)
-    st.latex(sigma_alt_latex)
-    st.write(sigma_alt_value)
-
-    st.write(rw_section.Wx_top())
-    st.write(rw_section.Wx_bot())
-    st.write(rw_section.ex_top())
-    st.write(rw_section.ex_bot())
-    
 
 
 
