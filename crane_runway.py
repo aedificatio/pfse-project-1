@@ -1,21 +1,19 @@
 import streamlit as st
+import pycba as cba
 import sectionproperties.pre.library.primitive_sections as primitive_sections
-import sectionproperties.pre.library.steel_sections as steel_sections
 from sectionproperties.analysis.section import Section
 from sectionproperties.pre.pre import Material
-import matplotlib.pyplot as plt
-import matplotlib.markers as markers
-import pycba as cba
 from typing import Union, Dict
-from dataclasses import dataclass
-from handcalcs.decorator import handcalc
 from steel import section
 
 
 # Calculate Sectionproperties
 @st.cache_data
 def calc_sectionproperties(material, runway_section):
-    
+    """
+    Create a sectionproperties object of a H-shaped runway section 
+    based on the dimensions of the flanges and the web
+    """
     steel = Material(name='Steel', elastic_modulus=1, poissons_ratio=0.3, density=material.rho*1e-9,
                  yield_strength=material.fy, color='blue')
 
@@ -57,9 +55,6 @@ def calc_sectionproperties(material, runway_section):
 
     section = Section(geometry)
     section.calculate_geometric_properties()
-    
-    
-
     return section
 
 
@@ -119,36 +114,6 @@ def create_bridge_model(
 
 
 @st.cache_data
-def plot_results(
-    plot_info, 
-    pos_x_all, 
-    data_max_env, 
-    data_min_env, 
-    data_at_selected_pos, 
-    support_locations,
-    wheel_locations
-):
-    """
-    Returns a Matplotlib Axes object.
-    """
-    fig, ax = plt.subplots()
-    ax.set_title(plot_info['title'])
-    ax.set_xlabel("m")
-    ax.set_ylabel(plot_info['y_label'])
-    ax.plot(pos_x_all, data_max_env, plot_info['max'])
-    ax.plot(pos_x_all, data_min_env, plot_info['min'])
-    ax.plot(pos_x_all, -data_at_selected_pos, color=plot_info['selected_pos'])
-    
-    ax.fill_between(pos_x_all, data_max_env, color=plot_info['max'], alpha=0.3)
-    ax.fill_between(pos_x_all, data_min_env, color=plot_info['min'], alpha=0.3)
-    ax.plot([0,support_locations[-1]/1000],[0,0], color='gray', linewidth=3)
-    for support in support_locations:
-        ax.plot(support/1000, 0, marker=markers.CARETUP, color='gray', markersize=9)
-    for wheel in wheel_locations:
-        ax.plot(wheel/1000, 0, marker=markers.CARETDOWN, color='purple', markersize=9)
-    return fig, ax
-
-@st.cache_data
 def calculate_envelopes(E_mod, spans, ixx, mass, crane, stepsize):
     """
     Calculates the envelope forces on a crane runway.
@@ -157,70 +122,7 @@ def calculate_envelopes(E_mod, spans, ixx, mass, crane, stepsize):
     beam_model = create_crane_runway(E_mod=E_mod, ixx=ixx, spans=spans, mass=mass)
     crane_vehicle = create_crane_vehicle(beam_model=beam_model, crane=crane)
     bridge_model = create_bridge_model(beam_model, crane_vehicle)
-    # RESULT INFLUENCELINE BRIDGEMODEL
+    
     results_envelope = bridge_model.run_vehicle(step=stepsize)
     results_critical_values = bridge_model.critical_values(results_envelope)
     return results_envelope, results_critical_values, bridge_model
-
-# Nocache
-def plot_MV_results(results_envelope, pos_x_selected, result_at_pos, rw_geometry, rw_crane):
-    """
-    Plots the Bendingmoments and Shearforces of the envelope forces and alse the
-    forces with the crane at a specifief position.
-    """
-    plot_M = {
-        'title': "Bending moment",
-        'y_label':'kNm',
-        'max': 'green',
-        'min': 'blue',
-        'selected_pos': 'red'
-    }
-    plot_V = {
-        'title': "Shearforce",
-        'y_label': 'kN',
-        'max': 'red',
-        'min': 'orange',
-        'selected_pos': 'red'
-    }
-    fig_M, ax_M = plot_results(
-        plot_M, 
-        results_envelope.x, 
-        -results_envelope.Mmax, 
-        -results_envelope.Mmin, 
-        result_at_pos.results.M, 
-        rw_geometry.support_locations(),
-        rw_crane.wheel_locations(pos_x_selected)
-    )
-    fig_M.set_size_inches(7,5)
-    
-    fig_V, ax_V = plot_results(
-        plot_V, 
-        results_envelope.x, 
-        results_envelope.Vmax, 
-        results_envelope.Vmin, 
-        -result_at_pos.results.V, 
-        rw_geometry.support_locations(),
-        rw_crane.wheel_locations(pos_x_selected)
-    )
-    fig_V.set_size_inches(7,5)
-    return (fig_M, ax_M, fig_V, ax_V)
-
-
-hc_renderer = handcalc(override='long')
-
-sigma = hc_renderer(section.bending_stress)
-sigma_alternative = hc_renderer(section.bending_stress_alternative)
-
-
-def calc_bendingstresses(rw_section, Mmax):
-    """
-    Calculate the stresses by the bendingmoment.
-    """
-    sigma_latex, sigma_value = sigma(M = Mmax * 1e+6, ixx = rw_section.ixx(), e=rw_section.height()/2)
-    sigma_alt_latex, sigma_alt_value = sigma_alternative(M = Mmax * 1e+6, Wx = rw_section.Wx_top())
-    # sigma_alt_latex, sigma_alt_value = sigma_alternative(M = Mmax * 1e+6, Wx = rw_section.Wx_bot())
-    
-
-
-    return sigma_latex, sigma_value, sigma_alt_latex, sigma_alt_value
-

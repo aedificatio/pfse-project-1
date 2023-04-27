@@ -7,8 +7,8 @@ st.header("Designcalculation of a Crane runway.")
 st.write("NOT for use in real-life. \
          No safety factors or instability effects are taken into account.")
 
-# Geometry Parameters
-st.sidebar.header("Geometry Parameters")
+# Runway Geometry Parameters
+st.sidebar.header("Runway Geometry Parameters")
 rw_geometry = section.Runway_geometry()
 rw_geometry.no_spans = st.sidebar.slider(
     "Number of spans: ", 
@@ -69,8 +69,8 @@ with section_properties:
     rw_section.top_flange_height = st.number_input("Height top flange (mm)", value = 15)
     rw_section.web_width = st.number_input("Width of the web (mm)", value = 12)
     rw_section.web_height = st.number_input("Height of the web (mm)", value = 500)
-    rw_section.bot_flange_width = st.number_input("Width bottom flange (mm)", value = 300)
-    rw_section.bot_flange_height = st.number_input("Height bottom flange (mm)", value = 15)
+    rw_section.bot_flange_width = st.number_input("Width bottom flange (mm)", value = 200)
+    rw_section.bot_flange_height = st.number_input("Height bottom flange (mm)", value = 20)
 
     rw_section.section = cr.calc_sectionproperties(
         material=rw_material,
@@ -113,7 +113,13 @@ with calculate_runway:
     # RESULT AT SELECTED POS
     result_at_pos = bridge_model.static_vehicle(pos=pos_x_selected)
 
-    fig_M, ax_M, fig_V, ax_V = cr.plot_MV_results(results_envelope, pos_x_selected, result_at_pos, rw_geometry, rw_crane)
+    fig_M, fig_V = section.plot_MV_results(
+        results_envelope, 
+        pos_x_selected, 
+        result_at_pos, 
+        rw_geometry, 
+        rw_crane
+    )
     st.pyplot(fig=fig_M)
     st.pyplot(fig=fig_V)
 
@@ -142,9 +148,9 @@ with calculate_runway:
 
 
 # Show Hand Calculation for runway stresses
-show_handcalcs = st.expander(label="Show Hand Calculation for runway stresses")
+show_handcalcs = st.expander(label="Show Hand Calculation For Runway Stresses")
 with show_handcalcs:
-    st.header("Show Hand Calculation for runway stresses")
+    st.header("Show Hand Calculation For Runway Stresses")
 
     Mmax = -results_critical_values['Mmax']['val']
     Mmin = -results_critical_values['Mmin']['val']
@@ -161,7 +167,7 @@ with show_handcalcs:
     fig_plot_bendingstress = plot_stress.figure
     st.pyplot(fig=fig_plot_bendingstress)
 
-    sigma_latex, sigma_value, sigma_alt_latex, sigma_alt_value = cr.calc_bendingstresses(rw_section, absolute_max_moment)
+    sigma_latex, sigma_value, sigma_alt_latex, sigma_alt_value = section.calc_bendingstresses(rw_section, absolute_max_moment)
 
     st.latex(sigma_latex)
     st.write(sigma_value)
